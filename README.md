@@ -45,6 +45,7 @@ Query normalization. query_normalization.py runs on every query before expansion
 Rule-based query expansion. query_expansion.py adds FDA-domain terms when a query matches a narrow token or phrase rule, such as mapping "formula" toward infant-formula vocabulary or "metal" toward foreign-material phrases. At most, four terms are appended per query. Skip lists and pattern checks leave already-specific queries unchanged (for instance, queries beginning with undeclared or ending with contamination). When no rule fires, the UI reports that expansion was skipped. Broad expansion hurt precision in further experiments (Section 4.4).
 
 Guarded pseudo-relevance feedback. prf.py re-queries using terms drawn from the TF-IDF vectors of top baseline results treated as pseudo-relevant documents. Guardrails limit unstable reranking:
+
 -	Query-pattern skips for already-narrow inputs (allergen phrases, contamination wording, etc.).
 -	Each feedback document must contain every preprocessed query term.
 -	Proposed PRF terms must appear in at least two-thirds of selected feedback documents.
@@ -57,6 +58,7 @@ If any check fails, the system returns the baseline ranking with a short UI expl
 The Streamlit app provides ranked results, clustered view, analytics, and a "More like this" page for query-by-example similarity. The sidebar exposes classification, status, state, and optional recall initiation date filters. Clustering defaults to keyword-based groups (infant products, bacterial contamination, allergens, foreign material, chemical/residue) with optional k-means over retrieved TF-IDF vectors; hierarchical clustering was dropped due to high latency. Query-by-example search in feedback.py uses posting-list intersection rather than brute-force corpus comparison, reducing latency from tens of seconds to roughly 200 ms in testing.
 
 The UI has the following features:
+
 - Ranked results: Top-k retrieval with cosine scores and highlighted query terms
 - Clustered view: Exploratory grouping of the current result set
 - Analytics view: Aggregate views (counts by categories, recalls over time)
@@ -67,6 +69,7 @@ The UI has the following features:
 I implemented the inverted index, TF-IDF ranker, expansion rules, PRF logic, facet restriction, and posting-based similarity; external libraries handle HTTP (requests), tables (pandas), tokenization primitives (nltk), vector operations (numpy, scipy), k-means (scikit-learn), the UI (streamlit), and plots for analytics/evaluation (matplotlib).
 
 Key decisions and their rationale:
+
 - Stable recall_number doc IDs: Reproducible rebuilds and stable judgments
 - Field weighting via text repetition: Boost key fields without a separate fielded index
 - Pre-retrieval facet filtering: Avoid losing strong matches to a fixed top-k cutoff
