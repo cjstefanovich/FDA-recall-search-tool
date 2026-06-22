@@ -56,6 +56,9 @@ If any check fails, the system returns the baseline ranking with a short UI expl
 
 The Streamlit app provides ranked results, clustered view, analytics, and a “More like this” page for query-by-example similarity. The sidebar exposes classification, status, state, and optional recall initiation date filters. Clustering defaults to keyword-based groups (infant products, bacterial contamination, allergens, foreign material, chemical/residue) with optional k-means over retrieved TF-IDF vectors; hierarchical clustering was dropped due to high latency. Query-by-example search in feedback.py uses posting-list intersection rather than brute-force corpus comparison, reducing latency from tens of seconds to roughly 200 ms in testing.
 
+The UI has the following features:
+- 
+
 ### **Design decisions:**
 
 I implemented the inverted index, TF-IDF ranker, expansion rules, PRF logic, facet restriction, and posting-based similarity; external libraries handle HTTP (requests), tables (pandas), tokenization primitives (nltk), vector operations (numpy, scipy), k-means (scikit-learn), the UI (streamlit), and plots for analytics/evaluation (matplotlib).
