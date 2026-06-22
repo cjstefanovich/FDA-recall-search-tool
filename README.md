@@ -85,11 +85,23 @@ I built a 20-query benchmark (test_queries.csv) covering infant formula, allerge
 
 ### **Quantitative results:**
 
-table
+| **Config**       | **MAP**      | **P@5**     | **R@10**     | **NDCG@10**  | **Avg. latency (ms)** |
+|------------------|--------------|-------------|--------------|--------------|-----------------------|
+|     Baseline     |     0.560    |     0.90    |     0.584    |     0.735    |     11.3              |
+|     Expansion    |     0.592    |     0.95    |     0.613    |     0.771    |     14.5              |
+|     PRF          |     0.560    |     0.90    |     0.584    |     0.735    |     26.8              |
+|     Full         |     0.592    |     0.95    |     0.613    |     0.771    |     30.4              |
 
 Rule expansion raises MAP to 0.592 and P@5 to 0.95 at 14.5 ms average latency (+3.2 ms over baseline). Gains come mainly from "baby formula" (success case, Q01: P@5 0.0 to 1.0). "peanut allergen" (failure case, Q05) remains weak across configs (P@5 = 0.4), consistent with vocabulary mismatch. PRF matched baseline on every query because guardrails always returned the baseline ranking; full matched expansion exactly with added latency.
 
 Hyperparameter study. Table 5 reports a PRF sweep with rule expansion off. Three feedback documents and five terms yield the best MAP (0.560) and P@5 (0.90). Using only two feedback documents lowered MAP to 0.545; increasing feedback depth to five documents did not help. prf_docs3_terms8 ties prf_docs3_terms5 because guardrails did not select additional terms. These results confirm the default PRF settings used in the main benchmark.
+
+| **Setting**             | **Feedback docs** | **PRF terms** | **MAP**      | **P@5**     | **NDCG@10**  | **Avg. latency (ms)** |
+|-------------------------|-------------------|---------------|--------------|-------------|--------------|-----------------------|
+|     prf_docs2_terms5    |     2             |     5         |     0.545    |     0.89    |     0.720    |     23.4              |
+|     prf_docs3_terms5    |     3             |     5         |     0.560    |     0.90    |     0.735    |     24.2              |
+|     prf_docs5_terms5    |     5             |     5         |     0.549    |     0.90    |     0.726    |     25.0              |
+|     prf_docs3_terms8    |     3             |     8         |     0.560    |     0.90    |     0.735    |     24.2              |
 
 ### **Qualitative results:**
 
