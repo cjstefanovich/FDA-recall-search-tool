@@ -22,7 +22,7 @@ $$
 idf(t) = \log\left(\frac{1 + N}{1 + df(t)} + 1\right)
 $$
 
-Where *df(t)* is the document frequency of term *t*. I precompute each document’s TF-IDF vector norm for cosine scoring at query time. The vocabulary contains approximately 112,706 distinct terms; average document length is about 209 tokens after preprocessing. Persisted artifacts include *inverted_index.json*, *index_stats.json*, *vocabulary.json*, and *doc_metadata.csv*.
+Where *df(t)* is the document frequency of term *t*. I precompute each document's TF-IDF vector norm for cosine scoring at query time. The vocabulary contains approximately 112,706 distinct terms; average document length is about 209 tokens after preprocessing. Persisted artifacts include *inverted_index.json*, *index_stats.json*, *vocabulary.json*, and *doc_metadata.csv*.
 
 For query *q* and document *d*, cosine similarity over TF-IDF weights is:
 
@@ -82,7 +82,7 @@ Key decisions and their rationale:
 
 ### **Evaluation design:**
 
-I built a 20-query benchmark (*test_queries.csv*) covering infant formula, allergens, pathogens, foreign material, and related topics. Relevance labels are graded (2 = highly relevant, 1 = relevant, 0 = non-relevant). *relevance_judgments.csv* contains 237 labeled pairs across 206 unique recalls, built from a pooled top-10 candidate set across all four configurations: baseline (no expansion, no PRF), expansion, PRF, and full (expansion + PRF). I report P@5, R@10, MAP, NDCG@10, and average latency. For P@k, R@k, and MAP, grades 1 and 2 count as relevant. All runs use *top_k = 10*, normalization, and no facet filters, so MAP is computed over each query’s top 10 ranked documents only. *run_experiments.py* regenerates result CSVs and plots.
+I built a 20-query benchmark (*test_queries.csv*) covering infant formula, allergens, pathogens, foreign material, and related topics. Relevance labels are graded (2 = highly relevant, 1 = relevant, 0 = non-relevant). *relevance_judgments.csv* contains 237 labeled pairs across 206 unique recalls, built from a pooled top-10 candidate set across all four configurations: baseline (no expansion, no PRF), expansion, PRF, and full (expansion + PRF). I report P@5, R@10, MAP, NDCG@10, and average latency. For P@k, R@k, and MAP, grades 1 and 2 count as relevant. All runs use *top_k = 10*, normalization, and no facet filters, so MAP is computed over each query's top 10 ranked documents only. *run_experiments.py* regenerates result CSVs and plots.
 
 ### **Quantitative results:**
 
