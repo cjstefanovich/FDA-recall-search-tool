@@ -19,14 +19,14 @@ The crawler paginates up to 1,000 records per request sorted by report_date, fol
 Documents and queries share preprocessing in preprocessor.py: lowercase conversion, punctuation removal, alphanumeric tokenization, English stopword removal, and Porter stemming via NLTK. The indexer accumulates within-document term frequencies and writes an inverted index {term: {doc_id: tf}}. For a corpus of N documents, smoothed inverse document frequency is:
 
 $$
-\operatorname{idf}(t) = \log\left(\frac{1 + N}{1 + \operatorname{df}(t)} + 1\right)
+idf(t) = \log\left(\frac{1 + N}{1 + df(t)} + 1\right)
 $$
 
 Where df(t) is the document frequency of term t. We precompute each document’s TF-IDF vector norm for cosine scoring at query time. The vocabulary contains approximately 112,706 distinct terms; average document length is about 209 tokens after preprocessing. Persisted artifacts include inverted_index.json, index_stats.json, vocabulary.json, and doc_metadata.csv.
 For query q and document d, cosine similarity over TF-IDF weights is:
 
 $$
-\operatorname{sim}(q, d) =
+sim(q, d) =
 \frac{\sum_{t \in q \cap d} w_{t,q} w_{t,d}}{\lVert q \rVert \lVert d \rVert}
 $$
 
