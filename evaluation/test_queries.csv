@@ -1,0 +1,21 @@
+query_id,query_text,notes
+Q01,baby formula,Broad infant-product safety query
+Q02,infant formula,Direct infant formula query
+Q03,milk allergy,Consumer allergen query
+Q04,undeclared milk,Specific milk-allergen query
+Q05,peanut allergen,Specific peanut-allergen query
+Q06,salmonella contamination,Broad contamination query
+Q07,peanut butter salmonella,Product plus contamination query
+Q08,metal fragments,Foreign-material query
+Q09,foreign material,General defect query
+Q10,lettuce recall,Produce recall query
+Q11,listeria,Broad pathogen query
+Q12,ice cream listeria,Product plus pathogen query
+Q13,ice cream recall,Product-focused recall query
+Q14,cronobacter,Specific pathogen query
+Q15,e coli,Specific pathogen query
+Q16,salad recall,Prepared-food recall query
+Q17,potato salad recall,Specific salad-product query
+Q18,cheese listeria,Dairy product plus pathogen query
+Q19,mislabeling,Labeling/packaging error query
+Q20,sesame allergen,Specific sesame-allergen query
