@@ -40,9 +40,9 @@ Each online query follows five steps: (1) normalize and optionally apply rule ex
 
 Rule expansion and PRF are independent UI toggles, enabling clean ablation in experiments.
 
-Query normalization. query_normalization.py runs on every query before expansion or PRF. It canonicalizes common variants (for example, “E.coli”, “ecoli” to e coli) and applies a misspelling table plus fuzzy matching against a controlled domain term list (for example, “salmonela” to salmonella).
+Query normalization. query_normalization.py runs on every query before expansion or PRF. It canonicalizes common variants (for example, "E.coli", "ecoli" to e coli) and applies a misspelling table plus fuzzy matching against a controlled domain term list (for example, "salmonela" to salmonella).
 
-Rule-based query expansion. query_expansion.py adds FDA-domain terms when a query matches a narrow token or phrase rule, such as mapping “formula” toward infant-formula vocabulary or “metal” toward foreign-material phrases. At most, four terms are appended per query. Skip lists and pattern checks leave already-specific queries unchanged (for instance, queries beginning with undeclared or ending with contamination). When no rule fires, the UI reports that expansion was skipped. Broad expansion hurt precision in further experiments (Section 4.4).
+Rule-based query expansion. query_expansion.py adds FDA-domain terms when a query matches a narrow token or phrase rule, such as mapping "formula" toward infant-formula vocabulary or "metal" toward foreign-material phrases. At most, four terms are appended per query. Skip lists and pattern checks leave already-specific queries unchanged (for instance, queries beginning with undeclared or ending with contamination). When no rule fires, the UI reports that expansion was skipped. Broad expansion hurt precision in further experiments (Section 4.4).
 
 Guarded pseudo-relevance feedback. prf.py re-queries using terms drawn from the TF-IDF vectors of top baseline results treated as pseudo-relevant documents. Guardrails limit unstable reranking:
 -	Query-pattern skips for already-narrow inputs (allergen phrases, contamination wording, etc.).
@@ -54,14 +54,25 @@ If any check fails, the system returns the baseline ranking with a short UI expl
 
 ### **User interface:**
 
-The Streamlit app provides ranked results, clustered view, analytics, and a “More like this” page for query-by-example similarity. The sidebar exposes classification, status, state, and optional recall initiation date filters. Clustering defaults to keyword-based groups (infant products, bacterial contamination, allergens, foreign material, chemical/residue) with optional k-means over retrieved TF-IDF vectors; hierarchical clustering was dropped due to high latency. Query-by-example search in feedback.py uses posting-list intersection rather than brute-force corpus comparison, reducing latency from tens of seconds to roughly 200 ms in testing.
+The Streamlit app provides ranked results, clustered view, analytics, and a "More like this" page for query-by-example similarity. The sidebar exposes classification, status, state, and optional recall initiation date filters. Clustering defaults to keyword-based groups (infant products, bacterial contamination, allergens, foreign material, chemical/residue) with optional k-means over retrieved TF-IDF vectors; hierarchical clustering was dropped due to high latency. Query-by-example search in feedback.py uses posting-list intersection rather than brute-force corpus comparison, reducing latency from tens of seconds to roughly 200 ms in testing.
 
 The UI has the following features:
-- 
+- Ranked results: Top-k retrieval with cosine scores and highlighted query terms
+- Clustered view: Exploratory grouping of the current result set
+- Analytics view: Aggregate views (counts by categories, recalls over time)
+- "More like this" page: Query-by-example similarity from a selected recall
 
 ### **Design decisions:**
 
 I implemented the inverted index, TF-IDF ranker, expansion rules, PRF logic, facet restriction, and posting-based similarity; external libraries handle HTTP (requests), tables (pandas), tokenization primitives (nltk), vector operations (numpy, scipy), k-means (scikit-learn), the UI (streamlit), and plots for analytics/evaluation (matplotlib).
+
+Key decisions and their rationale:
+- Stable recall_number doc IDs: Reproducible rebuilds and stable judgments
+- Field weighting via text repetition: Boost key fields without a separate fielded index
+- Pre-retrieval facet filtering: Avoid losing strong matches to a fixed top-k cutoff
+- Separate expansion and PRF toggles: Clean ablation and user control
+- TF-IDF + cosine ranking: Strong benchmark accuracy at low latency
+- Cached index loading: Avoid reloading large JSON/CSV per query
 
 ## **Experiments and results**
 
@@ -73,7 +84,7 @@ I built a 20-query benchmark (test_queries.csv) covering infant formula, allerge
 
 table
 
-Rule expansion raises MAP to 0.592 and P@5 to 0.95 at 14.5 ms average latency (+3.2 ms over baseline). Gains come mainly from “baby formula” (success case, Q01: P@5 0.0 to 1.0). “peanut allergen” (failure case, Q05) remains weak across configs (P@5 = 0.4), consistent with vocabulary mismatch. PRF matched baseline on every query because guardrails always returned the baseline ranking; full matched expansion exactly with added latency.
+Rule expansion raises MAP to 0.592 and P@5 to 0.95 at 14.5 ms average latency (+3.2 ms over baseline). Gains come mainly from "baby formula" (success case, Q01: P@5 0.0 to 1.0). "peanut allergen" (failure case, Q05) remains weak across configs (P@5 = 0.4), consistent with vocabulary mismatch. PRF matched baseline on every query because guardrails always returned the baseline ranking; full matched expansion exactly with added latency.
 
 Hyperparameter study. Table 5 reports a PRF sweep with rule expansion off. Three feedback documents and five terms yield the best MAP (0.560) and P@5 (0.90). Using only two feedback documents lowered MAP to 0.545; increasing feedback depth to five documents did not help. prf_docs3_terms8 ties prf_docs3_terms5 because guardrails did not select additional terms. These results confirm the default PRF settings used in the main benchmark.
 
@@ -81,13 +92,13 @@ Hyperparameter study. Table 5 reports a PRF sweep with rule expansion off. Three
 
 Two patterns recur across benchmark and illustrative queries. Expansion closes vocabulary gaps when broad terms miss document phrasing (success case, Q01). Skip logic preserves precision on already-specific inputs such as undeclared milk and metal fragments (P@5 = 1.0 without expansion).
 
-The query “fargments” is not in the benchmark but illustrates normalization and enhancement behavior. Normalization corrects the typo to fragments, expansion adds foreign-material vocabulary, and PRF declines to rerank because feedback is too noisy. Narrower inputs such as “wheat” can activate PRF when feedback is coherent. Clustering and analytics help when ranked lists alone are hard to interpret; those UI features are not reflected in P@5.
+The query "fargments" is not in the benchmark but illustrates normalization and enhancement behavior. Normalization corrects the typo to fragments, expansion adds foreign-material vocabulary, and PRF declines to rerank because feedback is too noisy. Narrower inputs such as "wheat" can activate PRF when feedback is coherent. Clustering and analytics help when ranked lists alone are hard to interpret; those UI features are not reflected in P@5.
 
 ### **Further exploratory experiments:**
 
 After the main benchmark was stable, we ran a separate branch of further experiments to test alternative rankers and enhancement strategies before finalizing the codebase.
 
-We first replaced TF-IDF with BM25 and tuned BM25 hyperparameters. Tuned BM25 reached only MAP = 0.232 and NDCG@10 = 0.412, far below the TF-IDF baseline (MAP = 0.560), with noticeably higher latency. We also tried aggressive query expansion rules that appended many related terms per query. On “milk allergy”, average precision fell from 0.505 to 0.007, showing that broad expansion caused query drift rather than better recall. Unrestricted PRF diagnostics matched the guarded baseline (MAP = 0.560) but did not improve rankings. Rocchio-style vector feedback reached MAP = 0.533 and NDCG@10 = 0.718, below baseline on both metrics.
+We first replaced TF-IDF with BM25 and tuned BM25 hyperparameters. Tuned BM25 reached only MAP = 0.232 and NDCG@10 = 0.412, far below the TF-IDF baseline (MAP = 0.560), with noticeably higher latency. We also tried aggressive query expansion rules that appended many related terms per query. On "milk allergy", average precision fell from 0.505 to 0.007, showing that broad expansion caused query drift rather than better recall. Unrestricted PRF diagnostics matched the guarded baseline (MAP = 0.560) but did not improve rankings. Rocchio-style vector feedback reached MAP = 0.533 and NDCG@10 = 0.718, below baseline on both metrics.
 
 We also experimented with field importance directly in the ranker. Standalone fielded TF-IDF performed poorly (MAP = 0.083; NDCG@10 = 0.175), likely because our repetition-based weighting already captured much of the same signal. A blended fielded rerank came closest to the expansion configuration (NDCG@10 = 0.772 versus 0.771 for expansion alone), but still scored below rule-based expansion on MAP (0.590 versus 0.592) while adding latency.
 
@@ -97,12 +108,12 @@ These prototypes were not merged into the finalized codebase because none offere
 
 ### **Analysis of results:**
 
-Baseline TF-IDF already reaches P@5 = 0.90 on our 20 recall-focused queries, which suggests that field weighting, preprocessing, and inverted-index retrieval work well for this corpus. Rule-based expansion is the only setting that improves aggregate effectiveness: MAP and P@5 rose (0.560 to 0.592 and 0.90 to 0.95 respectively) with a modest latency cost (+3.2 ms). The largest gain comes from “baby formula” (Q01), where expansion bridges a synonym gap; “peanut allergen” (Q05) remains weak across all configurations (P@5 = 0.4), indicating a vocabulary mismatch that enhancement alone cannot fix. PRF and the full configuration did not change benchmark rankings because guardrails returned the baseline ordering on every query, adding latency without further benefit on this query set.
+Baseline TF-IDF already reaches P@5 = 0.90 on our 20 recall-focused queries, which suggests that field weighting, preprocessing, and inverted-index retrieval work well for this corpus. Rule-based expansion is the only setting that improves aggregate effectiveness: MAP and P@5 rose (0.560 to 0.592 and 0.90 to 0.95 respectively) with a modest latency cost (+3.2 ms). The largest gain comes from "baby formula" (Q01), where expansion bridges a synonym gap; "peanut allergen" (Q05) remains weak across all configurations (P@5 = 0.4), indicating a vocabulary mismatch that enhancement alone cannot fix. PRF and the full configuration did not change benchmark rankings because guardrails returned the baseline ordering on every query, adding latency without further benefit on this query set.
 
 ### **Hyperparameters:**
 
-Expansion is capped at four terms with explicit skip lists because aggressive rules from further experiments collapsed precision. Skip logic preserved strong performance on already-specific queries such as “undeclared milk”. The PRF sweep (Table 5) shows that three feedback documents and five terms yield the best MAP and P@5; two feedback documents lowered MAP to 0.545, and increasing terms to eight tied the default because guardrails did not adopt additional terms.
+Expansion is capped at four terms with explicit skip lists because aggressive rules from further experiments collapsed precision. Skip logic preserved strong performance on already-specific queries such as "undeclared milk". The PRF sweep (Table 5) shows that three feedback documents and five terms yield the best MAP and P@5; two feedback documents lowered MAP to 0.545, and increasing terms to eight tied the default because guardrails did not adopt additional terms.
 
 ### **What worked, what didn't, and next steps**
 
-OpenFDA crawling, offline index persistence, pre-retrieval facets, and query normalization worked well; clustering, analytics, and query-by-example complemented ranked lists. Guarded PRF did not improve benchmark metrics, and BM25, Rocchio feedback, aggressive expansion, and direct fielded TF-IDF were abandoned after further experiments showed no net benefit. Evaluation is also limited by sparse judgments: with only 237 labeled pairs across 28,890 documents, unjudged recalls are treated as non-relevant, which may understate performance when expansion retrieves plausible matches outside the pooled set, as on “peanut allergen” (Q05). Future work could include richer pooled judgments, data-driven expansion rules, or lightweight semantic reranking with strict latency caps.
+OpenFDA crawling, offline index persistence, pre-retrieval facets, and query normalization worked well; clustering, analytics, and query-by-example complemented ranked lists. Guarded PRF did not improve benchmark metrics, and BM25, Rocchio feedback, aggressive expansion, and direct fielded TF-IDF were abandoned after further experiments showed no net benefit. Evaluation is also limited by sparse judgments: with only 237 labeled pairs across 28,890 documents, unjudged recalls are treated as non-relevant, which may understate performance when expansion retrieves plausible matches outside the pooled set, as on "peanut allergen" (Q05). Future work could include richer pooled judgments, data-driven expansion rules, or lightweight semantic reranking with strict latency caps.
